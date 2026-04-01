@@ -22,7 +22,7 @@ const BookInventory = () => {
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
-  const [newBook, setNewBook] = useState({ title: "", author: "", isbn: "", copies: "1", department: "", category: "Computer Science", description: "" });
+  const [newBook, setNewBook] = useState({ title: "", author: "", isbn: "", copies: "1", department: "", category: "CSE", description: "" });
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -93,7 +93,7 @@ const BookInventory = () => {
     if (error) { toast.error("Failed to add book"); setUploading(false); return; }
     toast.success("Book added");
     setOpen(false);
-    setNewBook({ title: "", author: "", isbn: "", copies: "1", department: "", category: "Computer Science", description: "" });
+    setNewBook({ title: "", author: "", isbn: "", copies: "1", department: "", category: "CSE", description: "" });
     setCoverFile(null);
     setCoverPreview(null);
     setUploading(false);
@@ -174,7 +174,7 @@ const BookInventory = () => {
                     <Select value={newBook.category} onValueChange={(v) => setNewBook({ ...newBook, category: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["Computer Science", "Engineering", "Mathematics", "Science"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {["CSE", "ECE", "EEE", "MECH", "CIVIL", "Science & Humanities", "SSC Book Bank", "Stories"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

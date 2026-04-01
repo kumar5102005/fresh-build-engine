@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useBooks } from "@/hooks/useBooks";
 
-const categories = ["All", "Computer Science", "Engineering", "Mathematics", "Science", "General"];
+const categories = ["All", "CSE", "ECE", "EEE", "MECH", "CIVIL", "Science & Humanities", "SSC Book Bank", "Stories"];
 const languages = ["All", "English", "Hindi", "Tamil", "Telugu"];
 
 const BrowseBooks = () => {
