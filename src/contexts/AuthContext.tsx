@@ -46,29 +46,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Set up listener first (no await inside callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await loadUserData(session.user.id);
+          // Use setTimeout to avoid blocking the callback
+          setTimeout(() => {
+            if (mounted) {
+              loadUserData(session.user.id).then(() => {
+                if (mounted) setIsLoading(false);
+              });
+            }
+          }, 0);
         } else {
           setProfile(null);
           setRoles([]);
+          setIsLoading(false);
         }
-        if (mounted) setIsLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Then restore session from storage
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await loadUserData(session.user.id);
+        loadUserData(session.user.id).then(() => {
+          if (mounted) setIsLoading(false);
+        });
+      } else {
+        if (mounted) setIsLoading(false);
       }
-      if (mounted) setIsLoading(false);
     });
 
     return () => {
