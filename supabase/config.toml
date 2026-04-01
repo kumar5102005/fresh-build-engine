@@ -1,7 +1,1 @@
 project_id = "rmikxfszhisaqjqgsmnq"
-
-[functions.chat]
-verify_jwt = false
-
-[functions.recommend-books]
-verify_jwt = false
