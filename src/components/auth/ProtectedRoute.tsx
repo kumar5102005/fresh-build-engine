@@ -22,11 +22,6 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
     return <Navigate to="/login" replace />;
   }
 
-  // Admin users should only access admin routes
-  if (isAdmin && !requireAdmin) {
-    return <Navigate to="/admin" replace />;
-  }
-
   // Non-admin users cannot access admin routes
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
