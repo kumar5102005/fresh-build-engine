@@ -93,7 +93,7 @@ const BookInventory = () => {
     if (error) { toast.error("Failed to add book"); setUploading(false); return; }
     toast.success("Book added");
     setOpen(false);
-    setNewBook({ title: "", author: "", isbn: "", copies: "1", department: "", category: "Computer Science", description: "" });
+    setNewBook({ title: "", author: "", isbn: "", copies: "1", department: "", category: "CSE", description: "" });
     setCoverFile(null);
     setCoverPreview(null);
     setUploading(false);
