@@ -22,7 +22,7 @@ const BookInventory = () => {
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
-  const [newBook, setNewBook] = useState({ title: "", author: "", isbn: "", copies: "1", department: "", category: "Computer Science", description: "" });
+  const [newBook, setNewBook] = useState({ title: "", author: "", isbn: "", copies: "1", department: "", category: "CSE", description: "" });
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
