@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBookRecommendations, type BookRecommendation } from "@/hooks/useBookRecommendations";
 
-const categories = ["All", "Computer Science", "Mathematics", "Literature", "Science", "Business"];
+const categories = ["All", "CSE", "ECE", "EEE", "MECH", "CIVIL", "Science & Humanities", "SSC Book Bank", "Stories"];
 
 export function AIRecommendations() {
   const { recommendations, isLoading, getRecommendations } = useBookRecommendations();
