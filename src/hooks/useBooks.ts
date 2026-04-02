@@ -39,13 +39,25 @@ export function useBookReviews(bookId: string) {
   return useQuery({
     queryKey: ["book-reviews", bookId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: reviews, error } = await supabase
         .from("book_reviews")
-        .select("*, profiles(full_name)")
+        .select("*")
         .eq("book_id", bookId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      if (!reviews || reviews.length === 0) return [];
+
+      const userIds = [...new Set(reviews.map((r) => r.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.id, p.full_name]));
+      return reviews.map((r) => ({
+        ...r,
+        reviewer_name: profileMap.get(r.user_id) || "Anonymous",
+      }));
     },
     enabled: !!bookId,
   });
