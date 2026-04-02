@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 // Routes that admins ARE allowed to access (besides /admin/*)
-const ADMIN_ALLOWED_ROUTES = ["/profile", "/admin"];
+const ADMIN_ALLOWED_ROUTES = ["/profile", "/admin", "/admin/profile"];
 
 const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { user, isLoading, isAdmin } = useAuth();

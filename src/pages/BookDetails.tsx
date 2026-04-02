@@ -187,7 +187,7 @@ const BookDetails = () => {
                         <Star key={j} className="h-3 w-3 fill-warning text-warning" />
                       ))}
                     </div>
-                    <span className="text-sm font-medium text-foreground">{review.profiles?.full_name || "Anonymous"}</span>
+                    <span className="text-sm font-medium text-foreground">{review.reviewer_name}</span>
                   </div>
                   {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
                   {i < reviews.length - 1 && <Separator className="mt-3" />}

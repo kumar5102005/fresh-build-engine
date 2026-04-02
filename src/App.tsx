@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/profile" element={<ProtectedRoute requireAdmin><Profile /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/books" element={<ProtectedRoute requireAdmin><BookInventory /></ProtectedRoute>} />
             <Route path="/admin/requests" element={<ProtectedRoute requireAdmin><BorrowRequests /></ProtectedRoute>} />

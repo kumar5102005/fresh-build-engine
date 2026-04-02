@@ -16,6 +16,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,6 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         resetPassword,
         updatePassword,
+        refreshProfile: () => user ? loadUserData(user.id) : Promise.resolve(),
       }}
     >
       {children}

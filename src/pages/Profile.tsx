@@ -7,12 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "react-router-dom";
+import AdminLayout from "@/components/layout/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 const Profile = () => {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, refreshProfile } = useAuth();
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [collegeId, setCollegeId] = useState(profile?.college_id || "");
@@ -54,6 +58,7 @@ const Profile = () => {
     setAvatarUrl(url);
     setUploadingAvatar(false);
     toast.success("Profile photo updated");
+    await refreshProfile();
   };
 
   const handleChangePassword = async () => {
@@ -76,8 +81,10 @@ const Profile = () => {
     stats.push({ label: "College ID", value: profile?.college_id || "—", icon: CreditCard });
   }
 
+  const LayoutComponent = isAdminRoute ? AdminLayout : DashboardLayout;
+
   return (
-    <DashboardLayout>
+    <LayoutComponent>
       <div className="space-y-6 max-w-3xl">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Profile Settings</h1>
@@ -169,7 +176,7 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </LayoutComponent>
   );
 };
 
