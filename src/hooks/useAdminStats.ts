@@ -25,12 +25,33 @@ export function useAdminUsers() {
   return useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*, user_roles(role)")
+        .select("*")
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+
+      if (profilesError) throw profilesError;
+      if (!profiles?.length) return [];
+
+      const profileIds = profiles.map((profile) => profile.id);
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", profileIds);
+
+      if (rolesError) throw rolesError;
+
+      const rolesByUserId = new Map<string, Array<{ role: string }>>();
+      for (const roleEntry of roles || []) {
+        const existingRoles = rolesByUserId.get(roleEntry.user_id) || [];
+        existingRoles.push({ role: roleEntry.role });
+        rolesByUserId.set(roleEntry.user_id, existingRoles);
+      }
+
+      return profiles.map((profile) => ({
+        ...profile,
+        user_roles: rolesByUserId.get(profile.id) || [],
+      }));
     },
   });
 }

@@ -24,12 +24,35 @@ export function useAllBorrowRequests() {
   return useQuery({
     queryKey: ["all-borrow-requests"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: requests, error: requestsError } = await supabase
         .from("borrow_requests")
-        .select("*, books(title, author), profiles(full_name)")
+        .select("*")
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+
+      if (requestsError) throw requestsError;
+      if (!requests?.length) return [];
+
+      const bookIds = [...new Set(requests.map((request) => request.book_id))];
+      const userIds = [...new Set(requests.map((request) => request.user_id))];
+
+      const [{ data: books, error: booksError }, { data: profiles, error: profilesError }] = await Promise.all([
+        supabase.from("books").select("id, title, author").in("id", bookIds),
+        supabase.from("profiles").select("id, full_name").in("id", userIds),
+      ]);
+
+      if (booksError) throw booksError;
+      if (profilesError) throw profilesError;
+
+      const booksById = new Map((books || []).map((book) => [book.id, book]));
+      const profilesById = new Map(
+        (profiles || []).map((profile) => [profile.id, { full_name: profile.full_name }])
+      );
+
+      return requests.map((request) => ({
+        ...request,
+        books: booksById.get(request.book_id) || null,
+        profiles: profilesById.get(request.user_id) || null,
+      }));
     },
   });
 }
