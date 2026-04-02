@@ -231,7 +231,8 @@ const BookInventory = () => {
                   <TableRow>
                     <TableHead>Book</TableHead>
                     <TableHead className="hidden md:table-cell">ISBN</TableHead>
-                    <TableHead className="hidden lg:table-cell">Dept</TableHead>
+                    <TableHead className="hidden lg:table-cell">Category</TableHead>
+                    <TableHead className="hidden xl:table-cell">Dept</TableHead>
                     <TableHead className="hidden sm:table-cell">Copies</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]" />
@@ -258,7 +259,8 @@ const BookInventory = () => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground font-mono">{book.isbn || "—"}</TableCell>
-                        <TableCell className="hidden lg:table-cell"><Badge variant="secondary" className="text-xs">{book.department || "—"}</Badge></TableCell>
+                        <TableCell className="hidden lg:table-cell"><Badge variant="outline" className="text-xs">{book.category}</Badge></TableCell>
+                        <TableCell className="hidden xl:table-cell"><Badge variant="secondary" className="text-xs">{book.department || "—"}</Badge></TableCell>
                         <TableCell className="hidden sm:table-cell text-sm">{book.available_copies}/{book.total_copies}</TableCell>
                         <TableCell>
                           <Badge variant={status === "available" ? "default" : status === "low" ? "secondary" : "destructive"} className="text-xs capitalize">
@@ -277,7 +279,7 @@ const BookInventory = () => {
                     );
                   })}
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No books found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No books found.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

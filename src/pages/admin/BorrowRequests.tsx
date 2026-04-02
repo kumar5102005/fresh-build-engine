@@ -25,6 +25,15 @@ const BorrowRequests = () => {
   const pendingCount = requests.filter((r: any) => r.status === "pending").length;
   const returnedCount = requests.filter((r: any) => r.status === "returned").length;
 
+  const handleAction = (req: any, status: "approved" | "rejected" | "returned") => {
+    updateRequest.mutate({
+      id: req.id,
+      status,
+      bookTitle: req.books?.title,
+      userId: req.user_id,
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -109,11 +118,11 @@ const BorrowRequests = () => {
                           <TableCell className="text-right">
                             {req.status === "pending" ? (
                               <div className="flex justify-end gap-1">
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-accent hover:text-accent" onClick={() => updateRequest.mutate({ id: req.id, status: "approved" })}><Check className="h-4 w-4" /></Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => updateRequest.mutate({ id: req.id, status: "rejected" })}><X className="h-4 w-4" /></Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-accent hover:text-accent" onClick={() => handleAction(req, "approved")}><Check className="h-4 w-4" /></Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleAction(req, "rejected")}><X className="h-4 w-4" /></Button>
                               </div>
                             ) : req.status === "approved" ? (
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateRequest.mutate({ id: req.id, status: "returned" })}>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleAction(req, "returned")}>
                                 <RotateCcw className="h-3 w-3 mr-1" /> Mark Returned
                               </Button>
                             ) : null}
