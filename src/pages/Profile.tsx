@@ -58,6 +58,7 @@ const Profile = () => {
     setAvatarUrl(url);
     setUploadingAvatar(false);
     toast.success("Profile photo updated");
+    await refreshProfile();
   };
 
   const handleChangePassword = async () => {
