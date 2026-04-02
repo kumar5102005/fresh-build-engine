@@ -45,6 +45,10 @@ const Analytics = () => {
         {/* KPI row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
+            { label: "Total Users", value: kpis?.totalUsers ?? "—" },
+            { label: "Total Books", value: kpis?.totalBooks ?? "—" },
+            { label: "Currently Borrowed", value: kpis?.totalBorrowed ?? "—" },
+            { label: "Total Returned", value: kpis?.totalReturned ?? "—" },
             { label: "Avg. Daily Borrows", value: kpis?.avgDailyBorrows ?? "—" },
             { label: "Most Popular Dept", value: kpis?.topDept ?? "—" },
             { label: "Return Rate", value: kpis?.returnRate ?? "—" },
