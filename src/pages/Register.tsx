@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Eye, EyeOff, Mail, Lock, User, Phone, IdCard, ArrowLeft } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Mail, Lock, User, Phone, IdCard, ArrowLeft, Shield, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const ADMIN_SECRET_KEY = "LibraAI@Admin2026";
 
 const getPasswordStrength = (password: string) => {
   let score = 0;
@@ -24,11 +26,15 @@ const getPasswordStrength = (password: string) => {
 const strengthLabels = ["Weak", "Fair", "Good", "Strong"];
 const strengthColors = ["bg-destructive", "bg-warning", "bg-primary", "bg-success"];
 
+type SignupRole = "user" | "admin";
+
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "otp">("form");
   const [otpValue, setOtpValue] = useState("");
+  const [signupRole, setSignupRole] = useState<SignupRole>("user");
+  const [adminSecretKey, setAdminSecretKey] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -49,6 +55,10 @@ const Register = () => {
     e.preventDefault();
     if (formData.password.length < 6) {
       toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (signupRole === "admin" && adminSecretKey !== ADMIN_SECRET_KEY) {
+      toast.error("Invalid admin secret key");
       return;
     }
     setLoading(true);
@@ -74,14 +84,26 @@ const Register = () => {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { error, data } = await supabase.auth.verifyOtp({
         email: formData.email,
         token: otpValue,
         type: "signup",
       });
       if (error) throw error;
+
+      // If admin signup, add admin role
+      if (signupRole === "admin" && data.user) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({ user_id: data.user.id, role: "admin" });
+        if (roleError) {
+          console.error("Failed to assign admin role:", roleError);
+          toast.error("Account created but admin role assignment failed. Contact support.");
+        }
+      }
+
       toast.success("Account verified! Welcome to LibraAI.");
-      navigate("/dashboard");
+      navigate(signupRole === "admin" ? "/admin" : "/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Invalid verification code");
     } finally {
@@ -127,6 +149,36 @@ const Register = () => {
                 <CardDescription>Join LibraAI and start exploring</CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Role Toggle */}
+                <div className="flex rounded-lg border border-border bg-muted/50 p-1 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setSignupRole("user")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-all",
+                      signupRole === "user"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <User className="h-4 w-4" />
+                    User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignupRole("admin")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-all",
+                      signupRole === "admin"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </button>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -192,6 +244,27 @@ const Register = () => {
                     </div>
                   </div>
 
+                  {/* Admin Secret Key Field */}
+                  {signupRole === "admin" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="adminKey" className="flex items-center gap-1.5">
+                        <Key className="h-3.5 w-3.5 text-primary" />
+                        Admin Secret Key
+                      </Label>
+                      <Input
+                        id="adminKey"
+                        type="password"
+                        placeholder="Enter admin secret key"
+                        value={adminSecretKey}
+                        onChange={(e) => setAdminSecretKey(e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Contact your institution to get the admin secret key.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex items-start gap-2">
                     <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(c) => setTermsAccepted(c as boolean)} className="mt-0.5" />
                     <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground cursor-pointer leading-relaxed">
@@ -202,7 +275,7 @@ const Register = () => {
                   </div>
 
                   <Button type="submit" className="w-full" size="lg" disabled={!termsAccepted || loading}>
-                    {loading ? "Creating account…" : "Create Account"}
+                    {loading ? "Creating account…" : signupRole === "admin" ? "Create Admin Account" : "Create Account"}
                   </Button>
                 </form>
 

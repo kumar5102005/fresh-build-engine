@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Mail, Lock, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+type LoginRole = "user" | "admin";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginRole, setLoginRole] = useState<LoginRole>("user");
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -28,9 +32,22 @@ const Login = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
+
       const isAdmin = roles?.some((r) => r.role === "admin");
-      toast.success(isAdmin ? "Welcome back, Admin!" : "Welcome back!");
-      navigate(isAdmin ? "/admin" : "/dashboard");
+
+      if (loginRole === "admin" && !isAdmin) {
+        toast.error("Invalid role for this login. You are not an admin.");
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      if (loginRole === "user" && isAdmin) {
+        // Admins can still log in as user if they choose
+      }
+
+      toast.success(loginRole === "admin" ? "Welcome back, Admin!" : "Welcome back!");
+      navigate(loginRole === "admin" ? "/admin" : "/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
@@ -59,6 +76,36 @@ const Login = () => {
             <CardDescription>Sign in to your LibraAI account</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Role Toggle */}
+            <div className="flex rounded-lg border border-border bg-muted/50 p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => setLoginRole("user")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-all",
+                  loginRole === "user"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <User className="h-4 w-4" />
+                User Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginRole("admin")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-all",
+                  loginRole === "admin"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin Login
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -116,7 +163,7 @@ const Login = () => {
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? "Signing in…" : "Sign In"}
+                {loading ? "Signing in…" : loginRole === "admin" ? "Sign In as Admin" : "Sign In"}
               </Button>
             </form>
 
