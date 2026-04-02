@@ -6,16 +6,17 @@ export function useAnalyticsData() {
   return useQuery({
     queryKey: ["admin-analytics"],
     queryFn: async () => {
-      // Fetch all borrow requests, penalties, and books
-      const [borrowRes, penaltyRes, booksRes] = await Promise.all([
+      const [borrowRes, penaltyRes, booksRes, usersRes] = await Promise.all([
         supabase.from("borrow_requests").select("created_at, type, status, returned_date"),
         supabase.from("penalties").select("created_at, amount, status"),
         supabase.from("books").select("category, department"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
       const borrows = borrowRes.data || [];
       const penalties = penaltyRes.data || [];
       const books = booksRes.data || [];
+      const totalUsers = usersRes.count ?? 0;
 
       // Monthly borrow/return trends (last 6 months)
       const now = new Date();
@@ -80,6 +81,7 @@ export function useAnalyticsData() {
       // KPIs
       const totalBorrows = borrows.filter((b) => b.type === "borrow").length;
       const totalReturned = borrows.filter((b) => b.status === "returned").length;
+      const totalBorrowed = borrows.filter((b) => b.status === "approved").length;
       const returnRate = totalBorrows > 0 ? Math.round((totalReturned / totalBorrows) * 100) : 0;
       const avgDailyBorrows = totalBorrows > 0 ? Math.round(totalBorrows / 30) : 0;
       const penaltyCollection = penalties
@@ -97,6 +99,10 @@ export function useAnalyticsData() {
           topDept,
           returnRate: `${returnRate}%`,
           penaltyCollection: `₹${penaltyCollection.toLocaleString()}`,
+          totalUsers,
+          totalBooks: books.length,
+          totalBorrowed,
+          totalReturned,
         },
       };
     },

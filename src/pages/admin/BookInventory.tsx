@@ -174,7 +174,7 @@ const BookInventory = () => {
                     <Select value={newBook.category} onValueChange={(v) => setNewBook({ ...newBook, category: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {["CSE", "ECE", "EEE", "MECH", "CIVIL", "Science & Humanities", "SSC Book Bank", "Stories"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {["CSE", "ECE", "EEE", "MECH", "CIVIL", "Science & Humanities", "SSC Book Bank", "Stories", "General"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
