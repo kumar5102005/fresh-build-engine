@@ -38,6 +38,7 @@ const mainNav = [
 ];
 
 const secondaryNav = [
+  { title: "Profile", url: "/profile", icon: Users },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 
