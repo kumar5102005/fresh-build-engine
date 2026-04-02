@@ -231,7 +231,8 @@ const BookInventory = () => {
                   <TableRow>
                     <TableHead>Book</TableHead>
                     <TableHead className="hidden md:table-cell">ISBN</TableHead>
-                    <TableHead className="hidden lg:table-cell">Dept</TableHead>
+                    <TableHead className="hidden lg:table-cell">Category</TableHead>
+                    <TableHead className="hidden xl:table-cell">Dept</TableHead>
                     <TableHead className="hidden sm:table-cell">Copies</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]" />
