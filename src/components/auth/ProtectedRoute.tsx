@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -7,8 +7,12 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
+// Routes that admins ARE allowed to access (besides /admin/*)
+const ADMIN_ALLOWED_ROUTES = ["/profile", "/admin"];
+
 const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { user, isLoading, isAdmin } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -25,6 +29,16 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
   // Non-admin users cannot access admin routes
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Admin users should NOT access user-only routes — redirect to admin panel
+  if (isAdmin && !requireAdmin) {
+    const isAllowed = ADMIN_ALLOWED_ROUTES.some(
+      (route) => location.pathname === route || location.pathname.startsWith("/admin")
+    );
+    if (!isAllowed) {
+      return <Navigate to="/admin" replace />;
+    }
   }
 
   return <>{children}</>;

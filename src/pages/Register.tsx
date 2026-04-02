@@ -67,6 +67,7 @@ const Register = () => {
         full_name: formData.name,
         college_id: formData.collegeId,
         phone: formData.phone,
+        ...(signupRole === "admin" ? { admin_role: "true" } : {}),
       });
       toast.success("Verification code sent to your email!");
       setStep("otp");
@@ -84,23 +85,14 @@ const Register = () => {
     }
     setLoading(true);
     try {
-      const { error, data } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         email: formData.email,
         token: otpValue,
         type: "signup",
       });
       if (error) throw error;
 
-      // If admin signup, add admin role
-      if (signupRole === "admin" && data.user) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: data.user.id, role: "admin" });
-        if (roleError) {
-          console.error("Failed to assign admin role:", roleError);
-          toast.error("Account created but admin role assignment failed. Contact support.");
-        }
-      }
+      // Admin role is automatically assigned by the database trigger via signup metadata
 
       toast.success("Account verified! Welcome to LibraAI.");
       navigate(signupRole === "admin" ? "/admin" : "/dashboard");
