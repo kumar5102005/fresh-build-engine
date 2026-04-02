@@ -98,20 +98,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (
     email: string,
     password: string,
-    meta: { full_name: string; college_id: string; phone: string }
+    meta: { full_name: string; college_id: string; phone: string; admin_role?: string }
   ) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: meta.full_name },
+        data: { full_name: meta.full_name, ...(meta.admin_role ? { admin_role: meta.admin_role } : {}) },
         emailRedirectTo: window.location.origin,
       },
     });
     if (error) throw error;
-
-    // Update profile with extra fields after signup trigger creates it
-    // This will be handled by the profile update after login
   };
 
   const signOut = async () => {
