@@ -67,6 +67,7 @@ const Register = () => {
         full_name: formData.name,
         college_id: formData.collegeId,
         phone: formData.phone,
+        ...(signupRole === "admin" ? { admin_role: "true" } : {}),
       });
       toast.success("Verification code sent to your email!");
       setStep("otp");
