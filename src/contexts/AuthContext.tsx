@@ -12,7 +12,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<User>;
-  signUp: (email: string, password: string, meta: { full_name: string; college_id: string; phone: string }) => Promise<void>;
+  signUp: (email: string, password: string, meta: { full_name: string; college_id: string; phone: string; admin_role?: string }) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
