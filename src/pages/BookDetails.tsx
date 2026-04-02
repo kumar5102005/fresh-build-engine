@@ -1,13 +1,19 @@
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { BookOpen, Heart, ArrowLeft, Star, Loader2, Library } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useBook, useBookReviews } from "@/hooks/useBooks";
 import { useShelf } from "@/hooks/useShelf";
 import { useCreateBorrowRequest } from "@/hooks/useBorrowRequests";
+import { useCreateReview } from "@/hooks/useBookReview";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const BookDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +21,28 @@ const BookDetails = () => {
   const { data: reviews = [] } = useBookReviews(id!);
   const { addToShelf } = useShelf();
   const createBorrow = useCreateBorrowRequest();
+  const createReview = useCreateReview();
+  const { user } = useAuth();
+
+  const [canReview, setCanReview] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (!user || !id) return;
+    const check = async () => {
+      const { data } = await supabase
+        .from("borrow_requests")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("book_id", id)
+        .in("status", ["approved", "returned"])
+        .limit(1);
+      setCanReview((data?.length ?? 0) > 0);
+    };
+    check();
+  }, [user, id]);
 
   if (isLoading) {
     return (
@@ -34,6 +62,19 @@ const BookDetails = () => {
     );
   }
 
+  const handleSubmitReview = () => {
+    createReview.mutate(
+      { bookId: book.id, rating, comment },
+      {
+        onSuccess: () => {
+          setShowReviewForm(false);
+          setComment("");
+          setRating(5);
+        },
+      }
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -43,8 +84,12 @@ const BookDetails = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
-            <div className="aspect-[3/4] bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center">
-              <BookOpen className="h-20 w-20 text-primary/20" />
+            <div className="aspect-[3/4] bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center overflow-hidden">
+              {book.cover_url ? (
+                <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+              ) : (
+                <BookOpen className="h-20 w-20 text-primary/20" />
+              )}
             </div>
           </div>
 
@@ -59,7 +104,6 @@ const BookDetails = () => {
                   <Heart className="h-5 w-5" />
                 </Button>
               </div>
-
               <div className="flex items-center gap-3 mt-3">
                 <Badge variant="outline" className={book.available_copies > 0 ? "bg-accent/10 text-accent border-accent/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
                   {book.available_copies > 0 ? "Available" : "Unavailable"}
@@ -104,9 +148,34 @@ const BookDetails = () => {
 
         <Card className="border-border/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Reviews ({reviews.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Reviews ({reviews.length})</CardTitle>
+              {canReview && !showReviewForm && (
+                <Button size="sm" onClick={() => setShowReviewForm(true)}>Write Review</Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {showReviewForm && (
+              <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
+                <Label>Rating</Label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button key={s} onClick={() => setRating(s)} className="focus:outline-none">
+                      <Star className={`h-5 w-5 ${s <= rating ? "fill-warning text-warning" : "text-muted-foreground"}`} />
+                    </button>
+                  ))}
+                </div>
+                <Label>Comment</Label>
+                <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your thoughts about this book..." />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSubmitReview} disabled={createReview.isPending}>
+                    {createReview.isPending ? "Submitting..." : "Submit Review"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowReviewForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
             {reviews.length === 0 ? (
               <p className="text-sm text-muted-foreground">No reviews yet.</p>
             ) : (
