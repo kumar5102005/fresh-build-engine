@@ -14,7 +14,9 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 const Profile = () => {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, refreshProfile } = useAuth();
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [collegeId, setCollegeId] = useState(profile?.college_id || "");
