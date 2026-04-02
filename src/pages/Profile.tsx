@@ -81,8 +81,10 @@ const Profile = () => {
     stats.push({ label: "College ID", value: profile?.college_id || "—", icon: CreditCard });
   }
 
+  const LayoutComponent = isAdminRoute ? AdminLayout : DashboardLayout;
+
   return (
-    <DashboardLayout>
+    <LayoutComponent>
       <div className="space-y-6 max-w-3xl">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Profile Settings</h1>
