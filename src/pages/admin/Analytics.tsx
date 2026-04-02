@@ -13,6 +13,10 @@ const PIE_COLORS = [
   "hsl(var(--warning))",
   "hsl(var(--destructive))",
   "hsl(var(--secondary))",
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff7c43",
 ];
 
 const tooltipStyle = {
@@ -32,7 +36,7 @@ const Analytics = () => {
     );
   }
 
-  const { monthlyBorrows = [], departmentData = [], dailyActive = [], penaltyTrend = [], kpis } = data || {};
+  const { monthlyBorrows = [], categoryData = [], dailyActive = [], penaltyTrend = [], kpis } = data || {};
 
   return (
     <AdminLayout>
@@ -50,7 +54,7 @@ const Analytics = () => {
             { label: "Currently Borrowed", value: kpis?.totalBorrowed ?? "—" },
             { label: "Total Returned", value: kpis?.totalReturned ?? "—" },
             { label: "Avg. Daily Borrows", value: kpis?.avgDailyBorrows ?? "—" },
-            { label: "Most Popular Dept", value: kpis?.topDept ?? "—" },
+            { label: "Most Popular Category", value: kpis?.topCategory ?? "—" },
             { label: "Return Rate", value: kpis?.returnRate ?? "—" },
             { label: "Penalty Collection", value: kpis?.penaltyCollection ?? "—" },
           ].map((k) => (
@@ -83,16 +87,25 @@ const Analytics = () => {
           </Card>
 
           <Card className="border-border/50">
-            <CardHeader className="pb-2"><CardTitle className="text-lg">Books by Department</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-lg">Books by Category</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={departmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {departmentData.map((_: any, i: number) => (
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {categoryData.map((_: any, i: number) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip contentStyle={tooltipStyle} />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>

@@ -43,29 +43,64 @@ const Register = () => {
     phone: "",
   });
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const strength = getPasswordStrength(formData.password);
 
-  const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+
+    if (signupRole === "user") {
+      // College ID: must start with "o21" and be exactly 7 characters
+      if (!formData.collegeId) {
+        newErrors.collegeId = "College ID is required";
+      } else if (!/^o21[a-zA-Z0-9]{4}$/i.test(formData.collegeId)) {
+        newErrors.collegeId = "Must start with 'o21' and be exactly 7 characters (e.g., o21xxxx)";
+      }
+
+      // Email: must end with @rguktong.ac.in
+      if (!formData.email) {
+        newErrors.email = "Email is required";
+      } else if (!formData.email.toLowerCase().endsWith("@rguktong.ac.in")) {
+        newErrors.email = "Email must end with @rguktong.ac.in";
+      }
+    } else {
+      if (!formData.email) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = "Invalid email address";
+      }
+    }
+
+    if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    if (!formData.phone.trim()) newErrors.phone = "Phone is required";
+
+    if (signupRole === "admin" && adminSecretKey !== ADMIN_SECRET_KEY) {
+      newErrors.adminKey = "Invalid admin secret key";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    if (signupRole === "admin" && adminSecretKey !== ADMIN_SECRET_KEY) {
-      toast.error("Invalid admin secret key");
-      return;
-    }
+    if (!validate()) return;
+
     setLoading(true);
     try {
       await signUp(formData.email, formData.password, {
         full_name: formData.name,
-        college_id: formData.collegeId,
+        college_id: signupRole === "admin" ? "" : formData.collegeId,
         phone: formData.phone,
         ...(signupRole === "admin" ? { admin_role: "true" } : {}),
       });
@@ -91,8 +126,6 @@ const Register = () => {
         type: "signup",
       });
       if (error) throw error;
-
-      // Admin role is automatically assigned by the database trigger via signup metadata
 
       toast.success("Account verified! Welcome to LibraAI.");
       navigate(signupRole === "admin" ? "/admin" : "/dashboard");
@@ -178,14 +211,24 @@ const Register = () => {
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="name" placeholder="John Doe" value={formData.name} onChange={update("name")} className="pl-10" required />
                     </div>
+                    {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" placeholder="you@example.com" value={formData.email} onChange={update("email")} className="pl-10" required />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder={signupRole === "user" ? "you@rguktong.ac.in" : "you@example.com"}
+                        value={formData.email}
+                        onChange={update("email")}
+                        className="pl-10"
+                        required
+                      />
                     </div>
+                    {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -205,6 +248,7 @@ const Register = () => {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
                     {formData.password && (
                       <div className="space-y-1.5">
                         <div className="flex gap-1">
@@ -219,22 +263,43 @@ const Register = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="collegeId">College ID</Label>
-                      <div className="relative">
-                        <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input id="collegeId" placeholder="ID123" value={formData.collegeId} onChange={update("collegeId")} className="pl-10" required />
+                  {signupRole === "user" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="collegeId">College ID</Label>
+                        <div className="relative">
+                          <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="collegeId"
+                            placeholder="o21xxxx"
+                            value={formData.collegeId}
+                            onChange={update("collegeId")}
+                            className="pl-10"
+                            required
+                            maxLength={7}
+                          />
+                        </div>
+                        {errors.collegeId && <p className="text-xs text-destructive">{errors.collegeId}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="phone" type="tel" placeholder="+91..." value={formData.phone} onChange={update("phone")} className="pl-10" required />
+                        </div>
+                        {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                       </div>
                     </div>
+                  ) : (
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone</Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input id="phone" type="tel" placeholder="+91..." value={formData.phone} onChange={update("phone")} className="pl-10" required />
                       </div>
+                      {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                     </div>
-                  </div>
+                  )}
 
                   {/* Admin Secret Key Field */}
                   {signupRole === "admin" && (
@@ -248,9 +313,10 @@ const Register = () => {
                         type="password"
                         placeholder="Enter admin secret key"
                         value={adminSecretKey}
-                        onChange={(e) => setAdminSecretKey(e.target.value)}
+                        onChange={(e) => { setAdminSecretKey(e.target.value); setErrors((prev) => ({ ...prev, adminKey: "" })); }}
                         required
                       />
+                      {errors.adminKey && <p className="text-xs text-destructive">{errors.adminKey}</p>}
                       <p className="text-xs text-muted-foreground">
                         Contact your institution to get the admin secret key.
                       </p>

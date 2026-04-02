@@ -9,7 +9,7 @@ export function useAnalyticsData() {
       const [borrowRes, penaltyRes, booksRes, usersRes] = await Promise.all([
         supabase.from("borrow_requests").select("created_at, type, status, returned_date"),
         supabase.from("penalties").select("created_at, amount, status"),
-        supabase.from("books").select("category, department"),
+        supabase.from("books").select("category"),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
@@ -32,21 +32,22 @@ export function useAnalyticsData() {
         ).length;
         const returnCount = borrows.filter(
           (b) =>
-            (b.type === "return" || b.status === "returned") &&
-            new Date(b.created_at) >= start &&
-            new Date(b.created_at) <= end
+            b.status === "returned" &&
+            b.returned_date &&
+            new Date(b.returned_date) >= start &&
+            new Date(b.returned_date) <= end
         ).length;
 
         monthlyBorrows.push({ month: monthLabel, borrows: borrowCount, returns: returnCount });
       }
 
-      // Department distribution from books
-      const deptMap: Record<string, number> = {};
+      // Category distribution from books (using actual category field)
+      const catMap: Record<string, number> = {};
       books.forEach((b) => {
-        const dept = b.department || "Other";
-        deptMap[dept] = (deptMap[dept] || 0) + 1;
+        const cat = b.category || "General";
+        catMap[cat] = (catMap[cat] || 0) + 1;
       });
-      const departmentData = Object.entries(deptMap)
+      const categoryData = Object.entries(catMap)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
@@ -58,7 +59,7 @@ export function useAnalyticsData() {
         const day = addDays(weekStart, i);
         const dayEnd = addDays(day, 1);
         const count = borrows.filter(
-          (b) => new Date(b.created_at) >= day && new Date(b.created_at) < dayEnd
+          (b) => b.type === "borrow" && new Date(b.created_at) >= day && new Date(b.created_at) < dayEnd
         ).length;
         dailyActive.push({ day: dayNames[i], users: count });
       }
@@ -87,16 +88,16 @@ export function useAnalyticsData() {
       const penaltyCollection = penalties
         .filter((p) => p.status === "paid")
         .reduce((sum, p) => sum + Number(p.amount), 0);
-      const topDept = departmentData.length > 0 ? departmentData[0].name : "—";
+      const topCategory = categoryData.length > 0 ? categoryData[0].name : "—";
 
       return {
         monthlyBorrows,
-        departmentData,
+        categoryData,
         dailyActive,
         penaltyTrend,
         kpis: {
           avgDailyBorrows,
-          topDept,
+          topCategory,
           returnRate: `${returnRate}%`,
           penaltyCollection: `₹${penaltyCollection.toLocaleString()}`,
           totalUsers,
