@@ -176,7 +176,7 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </LayoutComponent>
   );
 };
 
