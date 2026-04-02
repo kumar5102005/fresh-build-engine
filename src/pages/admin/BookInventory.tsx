@@ -259,7 +259,8 @@ const BookInventory = () => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground font-mono">{book.isbn || "—"}</TableCell>
-                        <TableCell className="hidden lg:table-cell"><Badge variant="secondary" className="text-xs">{book.department || "—"}</Badge></TableCell>
+                        <TableCell className="hidden lg:table-cell"><Badge variant="outline" className="text-xs">{book.category}</Badge></TableCell>
+                        <TableCell className="hidden xl:table-cell"><Badge variant="secondary" className="text-xs">{book.department || "—"}</Badge></TableCell>
                         <TableCell className="hidden sm:table-cell text-sm">{book.available_copies}/{book.total_copies}</TableCell>
                         <TableCell>
                           <Badge variant={status === "available" ? "default" : status === "low" ? "secondary" : "destructive"} className="text-xs capitalize">
