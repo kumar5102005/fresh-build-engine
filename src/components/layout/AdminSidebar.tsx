@@ -116,7 +116,13 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
+        {!collapsed && profile?.avatar_url && (
+          <div className="flex items-center gap-2 px-2">
+            <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full object-cover" />
+            <span className="text-sm text-sidebar-foreground truncate">{profile.full_name || "Admin"}</span>
+          </div>
+        )}
         <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive">
           <LogOut className="h-4 w-4" />
           {!collapsed && <span>Sign Out</span>}
