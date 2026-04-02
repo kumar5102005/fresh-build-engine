@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Check, X, Eye, Loader2 } from "lucide-react";
+import { Search, Check, X, RotateCcw, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const BorrowRequests = () => {
   });
 
   const pendingCount = requests.filter((r: any) => r.status === "pending").length;
+  const returnedCount = requests.filter((r: any) => r.status === "returned").length;
 
   return (
     <AdminLayout>
@@ -32,11 +33,12 @@ const BorrowRequests = () => {
           <p className="text-muted-foreground mt-1">Process and manage book borrow/return requests.</p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { label: "Pending", value: pendingCount, color: "text-warning" },
             { label: "Approved", value: requests.filter((r: any) => r.status === "approved").length },
             { label: "Rejected", value: requests.filter((r: any) => r.status === "rejected").length },
+            { label: "Returned", value: returnedCount },
             { label: "Total", value: requests.length },
           ].map((s) => (
             <Card key={s.label} className="border-border/50">
@@ -53,6 +55,7 @@ const BorrowRequests = () => {
             <TabsList>
               <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
               <TabsTrigger value="approved">Approved</TabsTrigger>
+              <TabsTrigger value="returned">Returned</TabsTrigger>
               <TabsTrigger value="rejected">Rejected</TabsTrigger>
               <TabsTrigger value="all">All</TabsTrigger>
             </TabsList>
@@ -75,6 +78,7 @@ const BorrowRequests = () => {
                         <TableHead className="hidden md:table-cell">Book</TableHead>
                         <TableHead className="hidden sm:table-cell">Type</TableHead>
                         <TableHead className="hidden lg:table-cell">Date</TableHead>
+                        <TableHead className="hidden lg:table-cell">Due Date</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -98,8 +102,9 @@ const BorrowRequests = () => {
                             <Badge variant={req.type === "borrow" ? "default" : "secondary"} className="text-xs capitalize">{req.type}</Badge>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{format(new Date(req.created_at), "MMM d, yyyy")}</TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{req.due_date ? format(new Date(req.due_date), "MMM d, yyyy") : "—"}</TableCell>
                           <TableCell>
-                            <Badge variant={req.status === "pending" ? "secondary" : req.status === "approved" ? "default" : "destructive"} className="text-xs capitalize">{req.status}</Badge>
+                            <Badge variant={req.status === "pending" ? "secondary" : req.status === "approved" ? "default" : req.status === "returned" ? "outline" : "destructive"} className="text-xs capitalize">{req.status}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             {req.status === "pending" ? (
@@ -107,14 +112,16 @@ const BorrowRequests = () => {
                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-accent hover:text-accent" onClick={() => updateRequest.mutate({ id: req.id, status: "approved" })}><Check className="h-4 w-4" /></Button>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => updateRequest.mutate({ id: req.id, status: "rejected" })}><X className="h-4 w-4" /></Button>
                               </div>
-                            ) : (
-                              <Button size="icon" variant="ghost" className="h-8 w-8"><Eye className="h-4 w-4" /></Button>
-                            )}
+                            ) : req.status === "approved" ? (
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateRequest.mutate({ id: req.id, status: "returned" })}>
+                                <RotateCcw className="h-3 w-3 mr-1" /> Mark Returned
+                              </Button>
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       ))}
                       {filtered.length === 0 && (
-                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No requests found.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No requests found.</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
