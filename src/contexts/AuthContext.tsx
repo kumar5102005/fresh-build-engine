@@ -142,6 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         resetPassword,
         updatePassword,
+        refreshProfile: () => user ? loadUserData(user.id) : Promise.resolve(),
       }}
     >
       {children}
