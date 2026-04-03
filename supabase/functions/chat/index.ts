@@ -262,24 +262,101 @@ async function callGemini(messages: Array<{ role: string; content: string }>, ge
   return parts.find((p: any) => p.text)?.text || "I couldn't generate a response.";
 }
 
+async function callOpenAI(messages: Array<{ role: string; content: string }>, apiKey: string): Promise<string> {
+  const openaiTools = tools.map((t) => ({
+    type: "function" as const,
+    function: t.function,
+  }));
+
+  const apiMessages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...messages,
+  ];
+
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: apiMessages,
+      tools: openaiTools,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("OpenAI error:", resp.status, errText);
+    throw new Error("AI service error");
+  }
+
+  const data = await resp.json();
+  const choice = data.choices?.[0];
+  const msg = choice?.message;
+
+  if (msg?.tool_calls?.length) {
+    const toolResults = [];
+    for (const tc of msg.tool_calls) {
+      const args = JSON.parse(tc.function.arguments || "{}");
+      const result = await handleToolCall(tc.function.name, args);
+      toolResults.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: result,
+      });
+    }
+
+    const secondResp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [...apiMessages, msg, ...toolResults],
+        tools: openaiTools,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!secondResp.ok) {
+      const errText = await secondResp.text();
+      console.error("OpenAI second call error:", secondResp.status, errText);
+      throw new Error("AI service error");
+    }
+
+    const secondData = await secondResp.json();
+    return secondData.choices?.[0]?.message?.content || "I couldn't generate a response.";
+  }
+
+  return msg?.content || "I couldn't generate a response.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { messages } = await req.json();
+    const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
     const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
     const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI API key configured");
+
+    if (!OPENAI_KEY && !GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI API key configured");
 
     let text: string;
 
-    if (GEMINI_KEY) {
+    // Priority: OpenAI > Gemini > Lovable Gateway
+    if (OPENAI_KEY) {
+      text = await callOpenAI(messages, OPENAI_KEY);
+    } else if (GEMINI_KEY) {
       try {
         text = await callGemini(messages, GEMINI_KEY);
       } catch (e) {
-        // Fallback to Lovable gateway on quota errors
         if (e instanceof Error && e.message === "GEMINI_QUOTA" && LOVABLE_KEY) {
-          console.log("Gemini quota exceeded, falling back to Lovable AI gateway");
           text = await callLovableGateway(messages, LOVABLE_KEY);
         } else {
           throw e;
