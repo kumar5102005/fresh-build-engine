@@ -148,7 +148,7 @@ async function callLovableGateway(messages: Array<{ role: string; content: strin
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash",
+      model: "google/gemini-3-flash-preview",
       messages: apiMessages,
       tools: openaiTools,
     }),
@@ -184,7 +184,7 @@ async function callLovableGateway(messages: Array<{ role: string; content: strin
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [...apiMessages, msg, ...toolResults],
         tools: openaiTools,
       }),
