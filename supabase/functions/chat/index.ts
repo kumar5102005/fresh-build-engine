@@ -129,6 +129,139 @@ function toGeminiTools() {
   }];
 }
 
+// Fallback: use Lovable AI gateway (OpenAI-compatible)
+async function callLovableGateway(messages: Array<{ role: string; content: string }>, apiKey: string): Promise<string> {
+  const openaiTools = tools.map((t) => ({
+    type: "function" as const,
+    function: t.function,
+  }));
+
+  const apiMessages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...messages,
+  ];
+
+  const resp = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.0-flash",
+      messages: apiMessages,
+      tools: openaiTools,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("Lovable gateway error:", resp.status, errText);
+    throw new Error("AI service error");
+  }
+
+  const data = await resp.json();
+  const choice = data.choices?.[0];
+  const msg = choice?.message;
+
+  // Handle tool calls
+  if (msg?.tool_calls?.length) {
+    const toolResults = [];
+    for (const tc of msg.tool_calls) {
+      const args = JSON.parse(tc.function.arguments || "{}");
+      const result = await handleToolCall(tc.function.name, args);
+      toolResults.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: result,
+      });
+    }
+
+    const secondResp = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.0-flash",
+        messages: [...apiMessages, msg, ...toolResults],
+        tools: openaiTools,
+      }),
+    });
+
+    if (!secondResp.ok) {
+      const errText = await secondResp.text();
+      console.error("Lovable gateway second call error:", secondResp.status, errText);
+      throw new Error("AI service error");
+    }
+
+    const secondData = await secondResp.json();
+    return secondData.choices?.[0]?.message?.content || "I couldn't generate a response.";
+  }
+
+  return msg?.content || "I couldn't generate a response.";
+}
+
+async function callGemini(messages: Array<{ role: string; content: string }>, geminiKey: string): Promise<string> {
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+  const contents = toGeminiContents(messages);
+
+  const firstResp = await fetch(geminiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents,
+      tools: toGeminiTools(),
+    }),
+  });
+
+  if (!firstResp.ok) {
+    const errText = await firstResp.text();
+    console.error("Gemini error:", firstResp.status, errText);
+    throw new Error(firstResp.status === 429 ? "GEMINI_QUOTA" : "AI service error");
+  }
+
+  const firstResult = await firstResp.json();
+  const parts = firstResult.candidates?.[0]?.content?.parts || [];
+  const functionCalls = parts.filter((p: any) => p.functionCall);
+
+  if (functionCalls.length > 0) {
+    const functionResponses = [];
+    for (const fc of functionCalls) {
+      const result = await handleToolCall(fc.functionCall.name, fc.functionCall.args || {});
+      functionResponses.push({
+        functionResponse: {
+          name: fc.functionCall.name,
+          response: JSON.parse(result),
+        },
+      });
+    }
+
+    const secondResp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [...contents, { role: "model", parts }, { role: "user", parts: functionResponses }],
+        tools: toGeminiTools(),
+      }),
+    });
+
+    if (!secondResp.ok) {
+      const errText = await secondResp.text();
+      console.error("Gemini second call error:", secondResp.status, errText);
+      throw new Error(secondResp.status === 429 ? "GEMINI_QUOTA" : "AI service error");
+    }
+
+    const secondResult = await secondResp.json();
+    return secondResult.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
+  }
+
+  return parts.find((p: any) => p.text)?.text || "I couldn't generate a response.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -138,90 +271,24 @@ serve(async (req) => {
     const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI API key configured");
 
-    const useGemini = !!GEMINI_KEY;
-    const geminiUrl = useGemini
-      ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
-      : null;
-    const lovableUrl = "https://ai-gateway.lovable.dev/v1/chat/completions";
+    let text: string;
 
-    const contents = toGeminiContents(messages);
-
-    // First call — may include tool calls
-    const firstResp = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        tools: toGeminiTools(),
-      }),
-    });
-
-    if (!firstResp.ok) {
-      const errText = await firstResp.text();
-      console.error("Gemini error:", firstResp.status, errText);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (GEMINI_KEY) {
+      try {
+        text = await callGemini(messages, GEMINI_KEY);
+      } catch (e) {
+        // Fallback to Lovable gateway on quota errors
+        if (e instanceof Error && e.message === "GEMINI_QUOTA" && LOVABLE_KEY) {
+          console.log("Gemini quota exceeded, falling back to Lovable AI gateway");
+          text = await callLovableGateway(messages, LOVABLE_KEY);
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      text = await callLovableGateway(messages, LOVABLE_KEY!);
     }
 
-    const firstResult = await firstResp.json();
-    const candidate = firstResult.candidates?.[0];
-    const parts = candidate?.content?.parts || [];
-
-    // Check for function calls
-    const functionCalls = parts.filter((p: any) => p.functionCall);
-
-    if (functionCalls.length > 0) {
-      // Execute all tool calls
-      const functionResponses = [];
-      for (const fc of functionCalls) {
-        const result = await handleToolCall(fc.functionCall.name, fc.functionCall.args || {});
-        functionResponses.push({
-          functionResponse: {
-            name: fc.functionCall.name,
-            response: JSON.parse(result),
-          },
-        });
-      }
-
-      // Second call with tool results
-      const secondContents = [
-        ...contents,
-        { role: "model", parts },
-        { role: "user", parts: functionResponses },
-      ];
-
-      const secondResp = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: secondContents,
-          tools: toGeminiTools(),
-        }),
-      });
-
-      if (!secondResp.ok) {
-        const errText = await secondResp.text();
-        console.error("Gemini second call error:", secondResp.status, errText);
-        return new Response(JSON.stringify({ error: "AI service error" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const secondResult = await secondResp.json();
-      const text = secondResult.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
-
-      return new Response(JSON.stringify({ text }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // No tool calls — return text directly
-    const text = parts.find((p: any) => p.text)?.text || "I couldn't generate a response.";
     return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
