@@ -24,20 +24,6 @@ export function useAIChat() {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    let assistantContent = "";
-    const assistantId = crypto.randomUUID();
-
-    const upsert = (chunk: string) => {
-      assistantContent += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && last.id === assistantId) {
-          return prev.map((m) => (m.id === assistantId ? { ...m, content: assistantContent } : m));
-        }
-        return [...prev, { id: assistantId, role: "assistant", content: assistantContent, timestamp: new Date() }];
-      });
-    };
-
     try {
       const apiMessages = [...messages, userMsg].map(({ role, content }) => ({ role, content }));
 
@@ -50,63 +36,29 @@ export function useAIChat() {
         body: JSON.stringify({ messages: apiMessages }),
       });
 
-      if (!resp.ok || !resp.body) {
+      if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Failed to connect" }));
-        upsert(err.error || "Sorry, something went wrong. Please try again.");
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "assistant", content: err.error || "Sorry, something went wrong. Please try again.", timestamp: new Date() },
+        ]);
         setIsLoading(false);
         return;
       }
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let done = false;
+      const data = await resp.json();
+      const text = data.text || "Sorry, I couldn't generate a response.";
 
-      while (!done) {
-        const { done: readerDone, value } = await reader.read();
-        if (readerDone) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let nlIdx: number;
-        while ((nlIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, nlIdx);
-          buffer = buffer.slice(nlIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const json = line.slice(6).trim();
-          if (json === "[DONE]") { done = true; break; }
-
-          try {
-            const parsed = JSON.parse(json);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) upsert(content);
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
-
-      // flush remaining
-      if (buffer.trim()) {
-        for (let raw of buffer.split("\n")) {
-          if (!raw) continue;
-          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-          if (!raw.startsWith("data: ")) continue;
-          const json = raw.slice(6).trim();
-          if (json === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(json);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) upsert(content);
-          } catch { /* ignore */ }
-        }
-      }
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", content: text, timestamp: new Date() },
+      ]);
     } catch (e) {
       console.error("Chat error:", e);
-      upsert("Sorry, I couldn't connect to the AI service. Please try again later.");
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", content: "Sorry, I couldn't connect to the AI service. Please try again later.", timestamp: new Date() },
+      ]);
     }
 
     setIsLoading(false);

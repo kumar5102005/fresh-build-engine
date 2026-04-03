@@ -92,17 +92,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
   return JSON.stringify({ error: "Unknown tool" });
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  try {
-    const { messages } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const systemMessage = {
-      role: "system",
-      content: `You are LibraAI, an intelligent library assistant for a college library management system (RGUKT Ongole). You help students and faculty with:
+const SYSTEM_PROMPT = `You are LibraAI, an intelligent library assistant for a college library management system (RGUKT Ongole). You help students and faculty with:
 
 1. **Book Search & Details** – Search the library database, show availability, details.
 2. **Book Recommendations** – Suggest books based on interests, courses, or reading history.
@@ -118,51 +108,117 @@ IMPORTANT RULES:
 - When users want to buy/purchase a book, use get_book_links.
 - Format book results in a clear table or list with title, author, availability.
 - Keep responses friendly, concise, and use markdown formatting.
-- Available categories: CSE, ECE, EEE, Mechanical, Civil, Science & Humanities, SSC Book Bank, Stories.`,
-    };
+- Available categories: CSE, ECE, EEE, Mechanical, Civil, Science & Humanities, SSC Book Bank, Stories.`;
 
-    let conversationMessages = [systemMessage, ...messages];
+// Convert OpenAI-style messages to Gemini format
+function toGeminiContents(messages: Array<{ role: string; content: string }>) {
+  return messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+}
 
-    // First AI call (may request tool calls)
-    let response = await callAI(LOVABLE_API_KEY, conversationMessages, true);
+// Convert tools to Gemini format
+function toGeminiTools() {
+  return [{
+    function_declarations: tools.map((t) => ({
+      name: t.function.name,
+      description: t.function.description,
+      parameters: t.function.parameters,
+    })),
+  }];
+}
 
-    if (!response.ok) {
-      return handleAIError(response);
-    }
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-    // Read the full response to check for tool calls
-    const aiResult = await response.json();
-    const choice = aiResult.choices?.[0];
+  try {
+    const { messages } = await req.json();
+    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (!GEMINI_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
 
-    if (choice?.finish_reason === "tool_calls" && choice?.message?.tool_calls?.length) {
-      // Handle tool calls
-      conversationMessages.push(choice.message);
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
-      for (const tc of choice.message.tool_calls) {
-        const args = JSON.parse(tc.function.arguments);
-        const result = await handleToolCall(tc.function.name, args);
-        conversationMessages.push({
-          role: "tool",
-          tool_call_id: tc.id,
-          content: result,
-        });
-      }
+    const contents = toGeminiContents(messages);
 
-      // Second AI call with tool results, streaming
-      response = await callAI(LOVABLE_API_KEY, conversationMessages, false, true);
-      if (!response.ok) return handleAIError(response);
+    // First call — may include tool calls
+    const firstResp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        tools: toGeminiTools(),
+      }),
+    });
 
-      return new Response(response.body, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    if (!firstResp.ok) {
+      const errText = await firstResp.text();
+      console.error("Gemini error:", firstResp.status, errText);
+      return new Response(JSON.stringify({ error: "AI service error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // No tool calls — stream directly. Re-call with streaming.
-    response = await callAI(LOVABLE_API_KEY, conversationMessages, true, true);
-    if (!response.ok) return handleAIError(response);
+    const firstResult = await firstResp.json();
+    const candidate = firstResult.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    // Check for function calls
+    const functionCalls = parts.filter((p: any) => p.functionCall);
+
+    if (functionCalls.length > 0) {
+      // Execute all tool calls
+      const functionResponses = [];
+      for (const fc of functionCalls) {
+        const result = await handleToolCall(fc.functionCall.name, fc.functionCall.args || {});
+        functionResponses.push({
+          functionResponse: {
+            name: fc.functionCall.name,
+            response: JSON.parse(result),
+          },
+        });
+      }
+
+      // Second call with tool results
+      const secondContents = [
+        ...contents,
+        { role: "model", parts },
+        { role: "user", parts: functionResponses },
+      ];
+
+      const secondResp = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: secondContents,
+          tools: toGeminiTools(),
+        }),
+      });
+
+      if (!secondResp.ok) {
+        const errText = await secondResp.text();
+        console.error("Gemini second call error:", secondResp.status, errText);
+        return new Response(JSON.stringify({ error: "AI service error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const secondResult = await secondResp.json();
+      const text = secondResult.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
+
+      return new Response(JSON.stringify({ text }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // No tool calls — return text directly
+    const text = parts.find((p: any) => p.text)?.text || "I couldn't generate a response.";
+    return new Response(JSON.stringify({ text }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("chat error:", e);
@@ -172,40 +228,3 @@ IMPORTANT RULES:
     });
   }
 });
-
-async function callAI(apiKey: string, messages: unknown[], withTools: boolean, stream = false) {
-  const body: Record<string, unknown> = {
-    model: "google/gemini-3-flash-preview",
-    messages,
-    stream,
-  };
-  if (withTools) body.tools = tools;
-
-  return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-}
-
-function handleAIError(response: Response) {
-  if (response.status === 429) {
-    return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-      status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (response.status === 402) {
-    return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-      status: 402,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  return new Response(JSON.stringify({ error: "AI service unavailable" }), {
-    status: 500,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
