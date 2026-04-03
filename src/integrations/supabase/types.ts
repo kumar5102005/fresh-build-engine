@@ -56,7 +56,6 @@ export type Database = {
           category: string
           cover_url: string | null
           created_at: string
-          department: string | null
           description: string | null
           edition: string | null
           id: string
@@ -75,7 +74,6 @@ export type Database = {
           category?: string
           cover_url?: string | null
           created_at?: string
-          department?: string | null
           description?: string | null
           edition?: string | null
           id?: string
@@ -94,7 +92,6 @@ export type Database = {
           category?: string
           cover_url?: string | null
           created_at?: string
-          department?: string | null
           description?: string | null
           edition?: string | null
           id?: string
