@@ -135,9 +135,14 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
     const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!GEMINI_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI API key configured");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+    const useGemini = !!GEMINI_KEY;
+    const geminiUrl = useGemini
+      ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
+      : null;
+    const lovableUrl = "https://ai-gateway.lovable.dev/v1/chat/completions";
 
     const contents = toGeminiContents(messages);
 
