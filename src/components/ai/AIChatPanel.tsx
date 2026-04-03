@@ -203,14 +203,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </Avatar>
       <div
         className={cn(
-          "max-w-[85%] rounded-xl px-3 py-2 text-sm",
+          "max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed",
           isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
         )}
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:my-2 [&_th]:px-2 [&_td]:px-2 [&_a]:text-primary">
+          <div className="prose prose-sm dark:prose-invert max-w-none break-words [&_p]:my-1.5 [&_p]:leading-relaxed [&_ul]:my-2 [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:pl-4 [&_li]:my-0.5 [&_li]:leading-relaxed [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:border-b [&_th]:border-border [&_th]:font-semibold [&_td]:px-3 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-border/50 [&_a]:text-primary [&_a]:underline [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_code]:bg-background/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-3 [&_blockquote]:italic [&_strong]:font-semibold">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         )}
