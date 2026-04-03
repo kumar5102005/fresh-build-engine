@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Badge } from "@/components/ui/badge";
+import { AIChatFAB } from "@/components/ai/AIChatFAB";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
