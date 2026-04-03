@@ -1,25 +1,29 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Trash2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Trash2, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useAIChat, type ChatMessage } from "@/hooks/useAIChat";
 
 const quickPrompts = [
-  "Recommend books on data structures",
-  "What are the borrowing policies?",
-  "Suggest a reading list for web development",
-  "How do I extend my book due date?",
+  "📚 Show all CSE books",
+  "🔍 Search for AI books",
+  "📖 What are the borrowing policies?",
+  "✍️ Write a summary of Data Structures",
+  "🛒 Where can I buy 'Artificial Intelligence'?",
+  "📊 Show available books in ECE",
 ];
 
 export function AIChatPanel() {
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
   const [input, setInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,6 +36,44 @@ export function AIChatPanel() {
     if (!trimmed || isLoading) return;
     setInput("");
     sendMessage(trimmed);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const toggleVoice = () => {
+    if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) return;
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setInput((prev) => prev + transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  };
+
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
 
   return (
@@ -62,9 +104,9 @@ export function AIChatPanel() {
               <Bot className="h-8 w-8 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Hi! I'm LibraAI</h3>
+              <h3 className="text-lg font-semibold text-foreground">Hi! I'm LibraAI 🤖</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                I can help you find books, answer library questions, and create reading lists.
+                I can search books, answer questions, generate purchase links, and write creative content.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md mt-2">
@@ -111,19 +153,34 @@ export function AIChatPanel() {
             e.preventDefault();
             handleSend();
           }}
-          className="flex gap-2"
+          className="flex items-end gap-2"
         >
-          <Input
-            ref={inputRef}
+          <Textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleTextareaInput}
+            onKeyDown={handleKeyDown}
             placeholder="Ask me anything about the library..."
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2"
+            rows={1}
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || isLoading}>
-            <Send className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1">
+            {"webkitSpeechRecognition" in window || "SpeechRecognition" in window ? (
+              <Button
+                type="button"
+                size="icon"
+                variant={isListening ? "destructive" : "outline"}
+                onClick={toggleVoice}
+                className="shrink-0"
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            ) : null}
+            <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </form>
       </div>
     </div>
@@ -146,14 +203,14 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </Avatar>
       <div
         className={cn(
-          "max-w-[80%] rounded-xl px-3 py-2 text-sm",
+          "max-w-[85%] rounded-xl px-3 py-2 text-sm",
           isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
         )}
       >
         {isUser ? (
-          <p>{message.content}</p>
+          <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:my-2 [&_th]:px-2 [&_td]:px-2 [&_a]:text-primary">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         )}
