@@ -22,6 +22,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {children}
           </main>
         </div>
+        <AIChatFAB />
       </div>
     </SidebarProvider>
   );
