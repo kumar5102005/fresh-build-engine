@@ -1,35 +1,38 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Trash2, Mic, MicOff } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Bot, User, Sparkles, Trash2, Mic, MicOff, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useAIChat, type ChatMessage } from "@/hooks/useAIChat";
+import { motion, AnimatePresence } from "framer-motion";
 
 const quickPrompts = [
   "📚 Show all CSE books",
   "🔍 Search for AI books",
-  "📖 What are the borrowing policies?",
-  "✍️ Write a summary of Data Structures",
-  "🛒 Where can I buy 'Artificial Intelligence'?",
-  "📊 Show available books in ECE",
+  "📖 Borrowing policies?",
+  "✍️ Summarize Data Structures",
+  "🛒 Buy 'Artificial Intelligence'",
+  "📰 Today's latest news",
 ];
 
 export function AIChatPanel() {
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // Auto-scroll to bottom on new messages or loading state
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, isLoading, scrollToBottom]);
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -58,8 +61,7 @@ export function AIChatPanel() {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript;
-      setInput((prev) => prev + transcript);
+      setInput((prev) => prev + event.results[0][0].transcript);
       setIsListening(false);
     };
     recognition.onerror = () => setIsListening(false);
@@ -77,82 +79,110 @@ export function AIChatPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background/30">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+            <Sparkles className="h-4.5 w-4.5 text-primary-foreground" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">LibraAI Assistant</h3>
-            <p className="text-xs text-muted-foreground">AI-powered library help</p>
+            <h3 className="text-sm font-bold text-foreground">LibraAI Assistant</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+              <p className="text-[11px] text-muted-foreground">Online • AI-powered help</p>
+            </div>
           </div>
         </div>
         {messages.length > 0 && (
-          <Button variant="ghost" size="icon" onClick={clearChat} className="text-muted-foreground hover:text-destructive">
+          <Button variant="ghost" size="icon" onClick={clearChat} className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors">
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-1">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center space-y-4">
-            <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center">
-              <Bot className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Hi! I'm LibraAI 🤖</h3>
-              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                I can search books, answer questions, generate purchase links, and write creative content.
+          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center space-y-5">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="h-18 w-18 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg"
+            >
+              <Bot className="h-9 w-9 text-primary-foreground" />
+            </motion.div>
+            <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+              <h3 className="text-lg font-bold text-foreground">Hi! I'm LibraAI 🤖</h3>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
+                Search books, get recommendations, buy links, latest news, and more.
               </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md mt-2">
+            </motion.div>
+            <motion.div
+              initial={{ y: 15, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="grid grid-cols-2 gap-2 w-full max-w-sm"
+            >
               {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
-                  className="text-left text-xs px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className="text-left text-xs px-3 py-2.5 rounded-xl border border-border/60 bg-card/60 hover:bg-accent hover:text-accent-foreground hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
                 >
                   {prompt}
                 </button>
               ))}
-            </div>
+            </motion.div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <AnimatePresence initial={false}>
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <MessageBubble message={msg} />
+              </motion.div>
             ))}
-            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex items-start gap-2">
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    <Bot className="h-3.5 w-3.5" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-xl px-3 py-2">
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
-                    <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          </AnimatePresence>
         )}
-      </ScrollArea>
+
+        {/* Typing indicator */}
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2.5 pt-2"
+          >
+            <Avatar className="h-7 w-7 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                <Bot className="h-3.5 w-3.5" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="bg-muted/80 rounded-2xl rounded-tl-sm px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:0ms]" />
+                  <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:150ms]" />
+                  <span className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:300ms]" />
+                </div>
+                <span className="text-xs text-muted-foreground ml-1">LibraAI is typing…</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-border bg-card/50">
+      <div className="p-3 border-t border-border/60 bg-card/80 backdrop-blur-sm">
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex items-end gap-2"
         >
           <Textarea
@@ -160,9 +190,9 @@ export function AIChatPanel() {
             value={input}
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me anything about the library..."
+            placeholder="Ask about books, news, or anything…"
             disabled={isLoading}
-            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2"
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none py-2.5 rounded-xl border-border/60 bg-background/60 focus:bg-background transition-colors"
             rows={1}
           />
           <div className="flex gap-1">
@@ -172,12 +202,17 @@ export function AIChatPanel() {
                 size="icon"
                 variant={isListening ? "destructive" : "outline"}
                 onClick={toggleVoice}
-                className="shrink-0"
+                className="shrink-0 h-10 w-10 rounded-xl"
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
             ) : null}
-            <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="shrink-0">
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isLoading}
+              className="shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>
@@ -187,15 +222,18 @@ export function AIChatPanel() {
   );
 }
 
+/* ─── Message Bubble ─── */
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
   return (
-    <div className={cn("flex items-start gap-2", isUser && "flex-row-reverse")}>
-      <Avatar className="h-7 w-7 shrink-0">
+    <div className={cn("flex items-start gap-2.5 mb-3", isUser && "flex-row-reverse")}>
+      <Avatar className="h-7 w-7 shrink-0 mt-0.5">
         <AvatarFallback
           className={cn(
             "text-xs",
-            isUser ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"
+            isUser
+              ? "bg-primary text-primary-foreground"
+              : "bg-primary/10 text-primary"
           )}
         >
           {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
@@ -203,15 +241,51 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </Avatar>
       <div
         className={cn(
-          "max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+          "max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
+          isUser
+            ? "bg-primary text-primary-foreground rounded-tr-sm"
+            : "bg-muted/80 text-foreground rounded-tl-sm border border-border/30"
         )}
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words [&_p]:my-1.5 [&_p]:leading-relaxed [&_ul]:my-2 [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:pl-4 [&_li]:my-0.5 [&_li]:leading-relaxed [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_th]:border-b [&_th]:border-border [&_th]:font-semibold [&_td]:px-3 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-border/50 [&_a]:text-primary [&_a]:underline [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_code]:bg-background/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-3 [&_blockquote]:italic [&_strong]:font-semibold">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+          <div className="prose prose-sm dark:prose-invert max-w-none break-words
+            [&_p]:my-1.5 [&_p]:leading-relaxed
+            [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:space-y-1
+            [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:space-y-1
+            [&_li]:leading-relaxed
+            [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs
+            [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_th]:border-b-2 [&_th]:border-border [&_th]:font-semibold [&_th]:bg-muted/50
+            [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-border/40
+            [&_tr:hover_td]:bg-accent/30
+            [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium
+            [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-2
+            [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1.5
+            [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1
+            [&_code]:bg-background/60 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono
+            [&_pre]:bg-background/60 [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_pre]:my-2
+            [&_blockquote]:border-l-3 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground
+            [&_strong]:font-bold [&_strong]:text-foreground
+            [&_hr]:my-3 [&_hr]:border-border/50
+          ">
+            <ReactMarkdown
+              components={{
+                a: ({ href, children, ...props }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline underline-offset-2 font-medium hover:text-primary/80 transition-colors"
+                    {...props}
+                  >
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
