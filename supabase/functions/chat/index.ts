@@ -290,7 +290,8 @@ async function callOpenAI(messages: Array<{ role: string; content: string }>, ap
   if (!resp.ok) {
     const errText = await resp.text();
     console.error("OpenAI error:", resp.status, errText);
-    throw new Error("AI service error");
+    if (resp.status === 429) throw new Error("OPENAI_QUOTA");
+    throw new Error("OPENAI_ERROR");
   }
 
   const data = await resp.json();
@@ -326,7 +327,8 @@ async function callOpenAI(messages: Array<{ role: string; content: string }>, ap
     if (!secondResp.ok) {
       const errText = await secondResp.text();
       console.error("OpenAI second call error:", secondResp.status, errText);
-      throw new Error("AI service error");
+      if (secondResp.status === 429) throw new Error("OPENAI_QUOTA");
+      throw new Error("OPENAI_ERROR");
     }
 
     const secondData = await secondResp.json();
@@ -336,43 +338,64 @@ async function callOpenAI(messages: Array<{ role: string; content: string }>, ap
   return msg?.content || "I couldn't generate a response.";
 }
 
+async function generateTextResponse(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+  const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+  const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  if (!OPENAI_KEY && !GEMINI_KEY && !LOVABLE_KEY) {
+    throw new Error("NO_AI_KEY");
+  }
+
+  if (OPENAI_KEY) {
+    try {
+      return await callOpenAI(messages, OPENAI_KEY);
+    } catch (e) {
+      console.error("OpenAI unavailable, trying fallback providers:", e);
+      if (!GEMINI_KEY && !LOVABLE_KEY) throw e;
+    }
+  }
+
+  if (GEMINI_KEY) {
+    try {
+      return await callGemini(messages, GEMINI_KEY);
+    } catch (e) {
+      console.error("Gemini unavailable, trying Lovable AI gateway:", e);
+      if (!LOVABLE_KEY) throw e;
+    }
+  }
+
+  if (LOVABLE_KEY) {
+    return await callLovableGateway(messages, LOVABLE_KEY);
+  }
+
+  throw new Error("AI service error");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { messages } = await req.json();
-    const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
-    const GEMINI_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!OPENAI_KEY && !GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI API key configured");
-
-    let text: string;
-
-    // Priority: OpenAI > Gemini > Lovable Gateway
-    if (OPENAI_KEY) {
-      text = await callOpenAI(messages, OPENAI_KEY);
-    } else if (GEMINI_KEY) {
-      try {
-        text = await callGemini(messages, GEMINI_KEY);
-      } catch (e) {
-        if (e instanceof Error && e.message === "GEMINI_QUOTA" && LOVABLE_KEY) {
-          text = await callLovableGateway(messages, LOVABLE_KEY);
-        } else {
-          throw e;
-        }
-      }
-    } else {
-      text = await callLovableGateway(messages, LOVABLE_KEY!);
-    }
+    const text = await generateTextResponse(messages);
 
     return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+
+    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    const isQuotaError = errorMessage === "OPENAI_QUOTA" || errorMessage === "GEMINI_QUOTA";
+    const status = isQuotaError ? 429 : 500;
+    const error = errorMessage === "NO_AI_KEY"
+      ? "No AI API key configured"
+      : isQuotaError
+        ? "AI provider quota exceeded"
+        : "AI service error";
+
+    return new Response(JSON.stringify({ error }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
