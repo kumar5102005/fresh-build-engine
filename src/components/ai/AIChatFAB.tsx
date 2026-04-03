@@ -3,16 +3,21 @@ import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIChatPanel } from "./AIChatPanel";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AIChatFAB() {
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <>
       {/* Chat panel */}
       <div
         className={cn(
-          "fixed bottom-20 right-4 z-50 w-[380px] h-[520px] rounded-2xl border border-border bg-background shadow-2xl overflow-hidden transition-all duration-300",
+          "fixed z-50 rounded-2xl border border-border bg-background shadow-2xl overflow-hidden transition-all duration-300",
+          isMobile
+            ? "bottom-0 right-0 left-0 top-0 rounded-none"
+            : "bottom-20 right-4 w-[400px] h-[560px]",
           isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
         )}
       >
