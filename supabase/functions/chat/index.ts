@@ -141,7 +141,7 @@ async function callLovableGateway(messages: Array<{ role: string; content: strin
     ...messages,
   ];
 
-  const resp = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -177,7 +177,7 @@ async function callLovableGateway(messages: Array<{ role: string; content: strin
       });
     }
 
-    const secondResp = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+    const secondResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
