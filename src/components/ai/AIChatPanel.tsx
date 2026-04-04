@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Bot, User, Sparkles, Trash2, Mic, MicOff, Plus, History, ChevronLeft, X } from "lucide-react";
+import { Send, Bot, User, Sparkles, Trash2, Mic, MicOff, Plus, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
