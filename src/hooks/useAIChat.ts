@@ -29,6 +29,7 @@ export function useAIChat() {
   // Load sessions on mount
   useEffect(() => {
     if (user) loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadSessions = useCallback(async () => {
