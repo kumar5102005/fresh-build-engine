@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 const navLinks = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/#features" },
-  { label: "Contact", href: "/#contact" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const Header = () => {
