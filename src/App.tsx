@@ -26,6 +26,8 @@ import PenaltyManagement from "./pages/admin/PenaltyManagement";
 import Analytics from "./pages/admin/Analytics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AIAssistant from "./pages/AIAssistant";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/books" element={<ProtectedRoute><BrowseBooks /></ProtectedRoute>} />
             <Route path="/books/:id" element={<ProtectedRoute><BookDetails /></ProtectedRoute>} />

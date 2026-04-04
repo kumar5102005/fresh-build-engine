@@ -144,7 +144,7 @@ export function AIChatPanel() {
           <div>
             <h3 className="text-sm font-bold text-foreground">LibraAI Assistant</h3>
             <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
               <p className="text-[11px] text-muted-foreground">Online • AI-powered help</p>
             </div>
           </div>
