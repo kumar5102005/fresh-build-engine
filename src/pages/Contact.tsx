@@ -60,8 +60,8 @@ const Contact = () => {
       <Layout>
         <div className="container py-20 flex items-center justify-center">
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-4">
-            <div className="h-16 w-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+            <div className="h-16 w-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-accent" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Message Sent!</h2>
             <p className="text-muted-foreground max-w-sm">Thank you for reaching out. We'll get back to you as soon as possible.</p>

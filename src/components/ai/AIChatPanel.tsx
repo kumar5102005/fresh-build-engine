@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { useAIChat, type ChatMessage, type ChatSession } from "@/hooks/useAIChat";
+import { useAIChat, type ChatMessage } from "@/hooks/useAIChat";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
