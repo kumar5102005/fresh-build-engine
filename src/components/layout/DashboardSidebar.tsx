@@ -10,7 +10,7 @@ import {
   Sparkles,
   BarChart3,
   Settings,
-  ArrowLeftRight,
+  
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link, useNavigate } from "react-router-dom";
