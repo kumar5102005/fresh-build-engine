@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Eye, EyeOff, Mail, Lock, Shield, User, Sparkles } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Mail, Lock, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
