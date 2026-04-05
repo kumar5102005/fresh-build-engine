@@ -26,13 +26,13 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
+    <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary glow-primary transition-shadow duration-300">
             <BookOpen className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
+          <span className="text-xl font-display font-bold tracking-tight text-foreground">
             Libra<span className="text-primary">AI</span>
           </span>
         </Link>
@@ -43,10 +43,10 @@ const Header = () => {
               key={link.href}
               to={link.href}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                 location.pathname === link.href
-                  ? "text-primary bg-primary/5"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  ? "text-primary bg-primary/8"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface/80"
               )}
             >
               {link.label}
@@ -57,20 +57,20 @@ const Header = () => {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="rounded-xl">
                 <Link to="/dashboard">Dashboard</Link>
               </Button>
-              <Button variant="outline" onClick={handleSignOut} size="sm">
+              <Button variant="outline" onClick={handleSignOut} size="sm" className="rounded-xl">
                 <LogOut className="h-4 w-4 mr-1.5" />
                 Sign Out
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="rounded-xl">
                 <Link to="/login">Sign In</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="gradient-primary text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow">
                 <Link to="/register">Get Started</Link>
               </Button>
             </>
@@ -92,35 +92,35 @@ const Header = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border bg-card"
+            className="md:hidden border-t border-border/30 bg-card/95 backdrop-blur-xl"
           >
-            <div className="container py-4 flex flex-col gap-2">
+            <div className="container py-4 flex flex-col gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="px-4 py-2.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  className="px-4 py-2.5 text-sm font-medium rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface/80 transition-colors"
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="flex flex-col gap-2 pt-3 border-t border-border">
+              <div className="flex flex-col gap-2 pt-3 border-t border-border/30">
                 {user ? (
                   <>
-                    <Button variant="ghost" asChild className="justify-start">
+                    <Button variant="ghost" asChild className="justify-start rounded-xl">
                       <Link to="/dashboard" onClick={() => setMobileOpen(false)}>Dashboard</Link>
                     </Button>
-                    <Button variant="outline" onClick={() => { handleSignOut(); setMobileOpen(false); }}>
+                    <Button variant="outline" className="rounded-xl" onClick={() => { handleSignOut(); setMobileOpen(false); }}>
                       Sign Out
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" asChild className="justify-start">
+                    <Button variant="ghost" asChild className="justify-start rounded-xl">
                       <Link to="/login" onClick={() => setMobileOpen(false)}>Sign In</Link>
                     </Button>
-                    <Button asChild>
+                    <Button asChild className="gradient-primary text-primary-foreground rounded-xl">
                       <Link to="/register" onClick={() => setMobileOpen(false)}>Get Started</Link>
                     </Button>
                   </>
