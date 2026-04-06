@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/layout/Layout";
+import HeroCarousel from "@/components/landing/HeroCarousel";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -100,6 +101,11 @@ const testimonials = [
 const Landing = () => {
   return (
     <Layout>
+      {/* Hero Carousel */}
+      <div className="container px-4">
+        <HeroCarousel />
+      </div>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background effects */}
