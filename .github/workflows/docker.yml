@@ -27,4 +27,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: phanikumar/libraai:latest
+          tags: phanikumar4139/libraai:latest
